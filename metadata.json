@@ -1,0 +1,6 @@
+{
+  "name": "NIXTA POS",
+  "description": "Sistema Punto de Venta (POS) Offline-First para tabletas de NIXTA ERP",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

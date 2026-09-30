@@ -1,0 +1,65 @@
+📄 ESPECIFICACIONES TÉCNICAS DE INTEGRACIÓN (APK NIXTA POS v2 ↔ LARAVEL)
+
+Contexto del Sistema:
+La aplicación móvil funciona bajo una arquitectura Offline-First. La tableta es la fuente primaria de datos transaccionales (Ventas, Sesiones), mientras que el servidor Laravel actúa como el consolidador central, validador de inventarios y gestor de catálogos.
+
+---
+
+1. DIRECTIVAS TÉCNICAS OBLIGATORIAS (Estándares de Datos)
+
+1.1 Manejo de Moneda (Centavos):
+Para evitar errores de precisión decimal (coma flotante), todos los montos (precios, impuestos, totales, fondos de caja) deben viajar como números enteros (Long) representando centavos.
+- Ejemplo: $18.50 MXN debe viajar en el JSON como 1850.
+- Acción Laravel: Dividir entre 100 al recibir y multiplicar por 100 al enviar en el API.
+
+1.2 Identificadores Únicos (UUID):
+La tableta genera sus propios IDs usando UUID v4. Laravel DEBE respetar estos IDs y usarlos como Llave Primaria (PK) en PostgreSQL. Esto permite la sincronización asíncrona sin colisiones de IDs secuenciales.
+
+1.3 Marcas de Tiempo (Timestamps):
+Todas las fechas de sincronización (last_sync, updated_at) y transacciones deben viajar en formato Unix Epoch en milisegundos (Long).
+
+1.4 Borrados Lógicos (Soft Deletes):
+Los registros eliminados en la web no deben desaparecer del API de sincronización. Deben enviarse con el flag is_deleted: true para que la tableta los oculte localmente en su base SQLite.
+
+1.5 Mapeo de Estados:
+La tableta maneja strings legibles ("ABIERTA", "CAJERO", "EFECTIVO"). Laravel debe mapear estos valores a sus IDs internos de tablas catálogo al persistir.
+
+---
+
+2. ESPECIFICACIÓN DE ENDPOINTS (API RESTful)
+
+A. Descarga Incremental (Delta Sync)
+- Ruta: GET /api/v1/sync/pull
+- Parámetros: last_sync (Long), tenant_id (String), sucursal_id (String).
+- Lógica: Retornar todos los registros de catálogos (Usuarios, Productos, Precios, Clientes, Pedidos, Apertura de Caja) donde updated_at > last_sync, filtrando estrictamente por el tenant_id y sucursal_id de la tableta.
+- Campo Clave en Productos: Se debe incluir el campo tipo_articulo (materia_prima, producto_terminado, productos_adicionales).
+
+B. Subida de Transacciones (Batch Push)
+- Ruta: POST /api/v1/sync/push
+- Payload: Un JSON con arreglos de SesionCaja, MovimientoCaja, Venta y VentaDetalle.
+- Lógica en Laravel:
+  1. Persistir los datos usando el UUID (ID) provisto por la tableta.
+  2. Gestión de Inventario: Por cada registro de VentaDetalle, invocar la función de base de datos en PostgreSQL encargada de descontar stock, pasando el producto_id, la cantidad y el tipo_articulo.
+- Respuesta: HTTP 200 con la lista de UUIDs procesados exitosamente para que la tableta los marque como "Sincronizados".
+
+C. Registro de Terminal (FCM)
+- Ruta: POST /api/v1/terminals/register-fcm-token
+- Lógica: Vincular el fcm_token de la tableta con su tenant_id y sucursal_id.
+
+---
+
+3. AUTOMATIZACIÓN Y NOTIFICACIONES PUSH
+
+Para cumplir con la actualización silenciosa en segundo plano del APK:
+1. Observers de Modelos: Laravel debe detectar cambios en tablas de catálogo (ej. cambio de precio en la web).
+2. Disparador FCM: Al detectar un cambio, Laravel enviará un Data Message (notificación silenciosa) a las tabletas vinculadas a esa sucursal.
+   - Payload Sugerido: {"event": "SYNC_REQUIRED", "entity": "PRODUCTOS"}.
+3. Resultado: El APK recibirá esto en segundo plano e invocará automáticamente el endpoint de Pull para refrescar sus datos locales sin intervención del usuario.
+
+---
+
+4. REGLAS DE OPERACIÓN DEL APK (Supuestos confirmados)
+- La tableta operará prioritariamente en modo Offline (Punto de Venta).
+- La sincronización masiva se ejecutará automáticamente cada mañana al iniciar sesión.
+- La sincronización incremental (precios/stock) se realizará en segundo plano cada 15 minutos o vía Push.
+- La tableta está "casada" con una sucursal; no se permiten cambios de sucursal tras la configuración inicial sin un reset completo de la aplicación.

@@ -269,6 +269,27 @@ abstract class NixtaPosDatabase : RoomDatabase() {
                 )
             )
 
+            // 6. Catálogos Semilla de Logística (Vehículos, Termos y Vendedores)
+            dao.upsertVehiculos(
+                listOf(
+                    VehiculoEntity(id = "10", placa = "XXX", modelo = "van", capacidad_kg = 1000.0, tenant_id = tenantId),
+                    VehiculoEntity(id = "11", placa = "CCCC", modelo = "van", capacidad_kg = 1000.0, tenant_id = tenantId)
+                )
+            )
+            dao.upsertTermos(
+                listOf(
+                    TermoEntity(id = "TERM-01", codigo = "TERM-01", nombre = "Termo 01", precio = 0L, tenant_id = tenantId),
+                    TermoEntity(id = "TERM-02", codigo = "TERM-02", nombre = "Termo 02", precio = 0L, tenant_id = tenantId)
+                )
+            )
+            dao.upsertVendedores(
+                listOf(
+                    VendedorEntity(id = "01a044f9-0d88-7b77-8409-7573ad5b02c8", nombre = "Repartidor Paterno Materno", rol = "REPARTIDOR", tenant_id = tenantId),
+                    VendedorEntity(id = "01a044f9-8d35-7cfa-830b-307083d46389", nombre = "Rep B B B", rol = "REPARTIDOR", tenant_id = tenantId),
+                    VendedorEntity(id = "01a044f9-f51f-7091-87f6-a50e97865d24", nombre = "Rep C C C", rol = "REPARTIDOR", tenant_id = tenantId)
+                )
+            )
+
             // 6. Pedidos Mayoristas (matching screenshot 9) - marcados como SINCRONIZADO para evitar envio de semillas sinteticas
             val pedidosSeed = listOf(
                 PedidoMayoristaEntity(

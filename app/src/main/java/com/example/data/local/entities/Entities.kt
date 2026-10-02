@@ -87,6 +87,14 @@ data class ProductoEntity(
     val is_deleted: Boolean = false
 )
 
+val ProductoEntity.isGranel: Boolean
+    get() {
+        val u = unidad_medida.lowercase()
+        if (u == "kg" || u == "kilogramo" || u == "granel" || u == "litro") return true
+        val n = nombre.lowercase()
+        return n.contains("tortilla") || n.contains("masa")
+    }
+
 @Entity(tableName = "clientes")
 data class ClienteEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),

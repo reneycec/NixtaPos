@@ -30,10 +30,12 @@ fun EntregasMayoristasScreen(
     asignaciones: List<AsignacionTermoEntity>,
     pedidos: List<PedidoMayoristaEntity>,
     productos: List<ProductoEntity> = emptyList(),
+    sucursales: List<SucursalEntity> = emptyList(),
     currentSucursal: SucursalEntity? = null,
     onAsignarTermo: (String, String, String, List<AsignacionTermoDetalleEntity>) -> Unit,
     onRecibirTermo: (AsignacionTermoEntity, List<AsignacionTermoDetalleEntity>) -> Unit,
     onAsignarPedido: (String, String) -> Unit,
+    onNewPedidoFuturo: (PedidoMayoristaEntity) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val repartidoresFlotilla = repartidores.filter { it.rol.equals("REPARTIDOR", ignoreCase = true) }
@@ -42,6 +44,7 @@ fun EntregasMayoristasScreen(
     var actionForRepartidor by remember { mutableStateOf<VendedorEntity?>(null) }
     var showAsignarTermoDialog by remember { mutableStateOf(false) }
     var showAsignarPedidosDialog by remember { mutableStateOf(false) }
+    var showNuevoPedidoSinVehiculoDialog by remember { mutableStateOf(false) }
     
     var receivingAsignacion by remember { mutableStateOf<AsignacionTermoEntity?>(null) }
     var selectedPedidoForDetail by remember { mutableStateOf<PedidoMayoristaEntity?>(null) }
@@ -276,8 +279,23 @@ fun EntregasMayoristasScreen(
                     modifier = Modifier.fillMaxWidth().border(1.dp, NixtaSurfaceBorder, RoundedCornerShape(14.dp))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Listado de Pedidos", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = NixtaTextPrimary)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Listado de Pedidos", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = NixtaTextPrimary)
+                            Button(
+                                onClick = { showNuevoPedidoSinVehiculoDialog = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = NixtaTerracottaPrimary),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("+ Nuevo Pedido", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
                         
                         Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFE0E0E0)).padding(8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Folio", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 12.sp)
@@ -345,13 +363,23 @@ fun EntregasMayoristasScreen(
             productos = productos,
             onDismiss = { showAsignarPedidosDialog = false },
             onAssignPedido = { pedidoId, vehId ->
-                onAsignarPedido(pedidoId, actionForRepartidor!!.id) // Simplified: Not recording the vehId in pedido for now
+                onAsignarPedido(pedidoId, actionForRepartidor!!.id)
                 showAsignarPedidosDialog = false
             },
             onNewPedido = { newPedido ->
-                // Actually save it in DB later, here just assign it
-                onAsignarPedido(newPedido.id, actionForRepartidor!!.id)
+                onNewPedidoFuturo(newPedido)
                 showAsignarPedidosDialog = false
+            }
+        )
+    }
+
+    if (showNuevoPedidoSinVehiculoDialog) {
+        NuevoPedidoSinVehiculoDialog(
+            productos = productos,
+            onDismiss = { showNuevoPedidoSinVehiculoDialog = false },
+            onConfirm = { newPedido ->
+                onNewPedidoFuturo(newPedido)
+                showNuevoPedidoSinVehiculoDialog = false
             }
         )
     }
@@ -360,7 +388,7 @@ fun EntregasMayoristasScreen(
         RecibirTermoDialog(
             asignacion = asig,
             detalles = emptyList<AsignacionTermoDetalleEntity>(), 
-            sucursales = currentSucursal?.let { listOf(it) } ?: emptyList<SucursalEntity>(),
+            sucursales = sucursales.ifEmpty { currentSucursal?.let { listOf(it) } ?: emptyList() },
             productos = productos,
             onDismiss = { receivingAsignacion = null },
             onConfirm = { sucId, detRecibidos ->

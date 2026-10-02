@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.data.local.entities.isGranel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -76,6 +77,7 @@ import com.example.ui.theme.NixtaTerracottaContainer
 import com.example.ui.theme.NixtaTerracottaPrimary
 import com.example.ui.theme.NixtaTextPrimary
 import com.example.ui.theme.NixtaTextSecondary
+import java.util.Locale
 
 @Composable
 fun VentaMostradorScreen(
@@ -90,6 +92,7 @@ fun VentaMostradorScreen(
     onCategoryChange: (String) -> Unit,
     onOpenScanner: () -> Unit,
     onAddToCart: (ProductoEntity) -> Unit,
+    onAddToCartGranel: (ProductoEntity) -> Unit, // Callback para abrir modal de granel
     onUpdateQuantity: (String, Double) -> Unit,
     onTogglePapel: (String) -> Unit,
     onRemoveFromCart: (String) -> Unit,
@@ -327,7 +330,13 @@ fun VentaMostradorScreen(
                         colors = CardDefaults.cardColors(containerColor = NixtaSurfaceCream),
                         modifier = Modifier
                             .border(1.dp, NixtaSurfaceBorder, RoundedCornerShape(12.dp))
-                            .clickable { onAddToCart(prod) }
+                            .clickable {
+                                if (prod.isGranel) {
+                                    onAddToCartGranel(prod)
+                                } else {
+                                    onAddToCart(prod)
+                                }
+                            }
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Text(
@@ -352,8 +361,9 @@ fun VentaMostradorScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 val pricePesos = prod.precio_con_impuestos / 100.0
+                                val formatPrice = String.format(Locale.getDefault(), "%.2f", pricePesos)
                                 Text(
-                                    text = "$${String.format("%.2f", pricePesos)}",
+                                    text = "$$formatPrice",
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Black,
                                     color = NixtaTerracottaPrimary
@@ -476,8 +486,9 @@ fun VentaMostradorScreen(
                                                 color = NixtaTextPrimary
                                             )
                                             val unitPricePesos = item.producto.precio_con_impuestos / 100.0
+                                            val unidadLabel = if (item.producto.isGranel) "kg" else item.producto.unidad_medida
                                             Text(
-                                                text = "$${String.format("%.2f", unitPricePesos)} / ${item.producto.unidad_medida}",
+                                                text = "$${String.format(Locale.getDefault(), "%.2f", unitPricePesos)} / $unidadLabel",
                                                 fontSize = 10.sp,
                                                 color = NixtaTextSecondary
                                             )
@@ -485,7 +496,7 @@ fun VentaMostradorScreen(
 
                                         val itemTotal = (item.producto.precio_con_impuestos * item.cantidad / 100.0) + if (item.incluyePapel) 1.0 else 0.0
                                         Text(
-                                            text = "$${String.format("%.2f", itemTotal)}",
+                                            text = "$${String.format(Locale.getDefault(), "%.2f", itemTotal)}",
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Black,
                                             color = NixtaTextPrimary
@@ -506,22 +517,30 @@ fun VentaMostradorScreen(
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(Color(0xFFF5EFE6))
                                         ) {
+                                            val step = if (item.producto.isGranel) 0.25 else 1.0
                                             IconButton(
-                                                onClick = { onUpdateQuantity(item.producto.id, item.cantidad - (if (item.producto.unidad_medida == "kg" || item.producto.unidad_medida == "Kilogramo") 0.5 else 1.0)) },
+                                                onClick = { onUpdateQuantity(item.producto.id, item.cantidad - step) },
                                                 modifier = Modifier.size(28.dp)
                                             ) {
                                                 Icon(Icons.Default.Remove, null, modifier = Modifier.size(14.dp))
                                             }
 
+                                            val cantidadText = if (item.producto.isGranel) "${item.cantidad} kg" else item.cantidad.toInt().toString()
                                             Text(
-                                                text = if (item.producto.unidad_medida == "kg" || item.producto.unidad_medida == "Kilogramo") "${item.cantidad} kg" else item.cantidad.toInt().toString(),
+                                                text = cantidadText,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 8.dp)
+                                                modifier = Modifier
+                                                    .clickable {
+                                                        if (item.producto.isGranel) {
+                                                            onAddToCartGranel(item.producto)
+                                                        }
+                                                    }
+                                                    .padding(horizontal = 8.dp)
                                             )
 
                                             IconButton(
-                                                onClick = { onUpdateQuantity(item.producto.id, item.cantidad + (if (item.producto.unidad_medida == "kg" || item.producto.unidad_medida == "Kilogramo") 0.5 else 1.0)) },
+                                                onClick = { onUpdateQuantity(item.producto.id, item.cantidad + step) },
                                                 modifier = Modifier.size(28.dp)
                                             ) {
                                                 Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))

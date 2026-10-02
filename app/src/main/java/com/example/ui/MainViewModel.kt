@@ -12,6 +12,7 @@ import com.example.data.local.entities.PedidoMayoristaDetalleEntity
 import com.example.data.local.entities.PedidoMayoristaEntity
 import com.example.data.local.entities.ProductoEntity
 import com.example.data.local.entities.SesionCajaEntity
+import com.example.data.local.entities.SucursalEntity
 import com.example.data.local.entities.TermoEntity
 import com.example.data.local.entities.UsuarioEntity
 import com.example.data.local.entities.VehiculoEntity
@@ -125,6 +126,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val currentSucursal: StateFlow<com.example.data.local.entities.SucursalEntity?> = sucursalId
         .flatMapLatest { id -> db.posDao().getSucursalById(id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val sucursales: StateFlow<List<SucursalEntity>> = tenantId
+        .flatMapLatest { t -> db.posDao().getSucursales(t) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val sucursalNombre: StateFlow<String> = currentSucursal
         .map { it?.nombre?.ifBlank { "SUCURSAL 01" } ?: "SUCURSAL 01" }
@@ -309,6 +315,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- ACTIONS ---
 
+    // Modal de Venta a Granel
+    private val _granelModalOpen = MutableStateFlow(false)
+    val granelModalOpen: StateFlow<Boolean> = _granelModalOpen.asStateFlow()
+
+    private val _productoParaGranel = MutableStateFlow<ProductoEntity?>(null)
+    val productoParaGranel: StateFlow<ProductoEntity?> = _productoParaGranel.asStateFlow()
+
     fun navigateTo(destination: NavDestination) {
         _currentDestination.value = destination
     }
@@ -418,6 +431,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // POS Cart Actions
+    // Venta a Granel Actions
+    fun openGranelModal(producto: ProductoEntity) {
+        _productoParaGranel.value = producto
+        _granelModalOpen.value = true
+    }
+
+    fun closeGranelModal() {
+        _granelModalOpen.value = false
+        _productoParaGranel.value = null
+    }
+
     fun addToCart(producto: ProductoEntity, cantidad: Double = 1.0) {
         val current = _cartItems.value.toMutableList()
         val index = current.indexOfFirst { it.producto.id == producto.id }
@@ -428,6 +452,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             current.add(CartItem(producto = producto, cantidad = cantidad))
         }
         _cartItems.value = current
+        if (_granelModalOpen.value) {
+            closeGranelModal()
+        }
     }
 
     fun updateCartItemQuantity(productoId: String, newCantidad: Double) {

@@ -55,6 +55,7 @@ import com.example.ui.components.NixtaSidebar
 import com.example.ui.components.PinKeypadDialog
 import com.example.ui.components.QuickSearchDialog
 import com.example.ui.components.SupervisorOverrideDialog
+import com.example.ui.components.VentaGranelDialog
 import com.example.ui.screens.CajaSessionScreen
 import com.example.ui.screens.ConfigSyncScreen
 import com.example.ui.screens.DashboardPanelScreen
@@ -144,7 +145,11 @@ fun MainScreen(
     val vehiculosDisponibles by viewModel.vehiculosDisponibles.collectAsState()
     val termosDisponibles by viewModel.termosDisponibles.collectAsState()
     val asignacionesTermo by viewModel.asignacionesTermo.collectAsState()
+    val sucursales by viewModel.sucursales.collectAsState()
     val currentSucursal by viewModel.currentSucursal.collectAsState()
+
+    val granelModalOpen by viewModel.granelModalOpen.collectAsState()
+    val productoParaGranel by viewModel.productoParaGranel.collectAsState()
 
 
     val totalCartItemsCount = cartItems.sumOf { it.cantidad }.toInt()
@@ -440,6 +445,7 @@ fun MainScreen(
                                 onCategoryChange = { viewModel.setSelectedCategory(it) },
                                 onOpenScanner = { viewModel.setScannerModalOpen(true) },
                                 onAddToCart = { viewModel.addToCart(it) },
+                                onAddToCartGranel = { viewModel.openGranelModal(it) },
                                 onUpdateQuantity = { id, qty -> viewModel.updateCartItemQuantity(id, qty) },
                                 onTogglePapel = { viewModel.toggleItemPapel(it) },
                                 onRemoveFromCart = { viewModel.removeFromCart(it) },
@@ -457,10 +463,12 @@ fun MainScreen(
                                 asignaciones = asignacionesTermo,
                                 pedidos = pedidosMayorista,
                                 productos = productos,
+                                sucursales = sucursales,
                                 currentSucursal = currentSucursal,
                                 onAsignarTermo = { rep, veh, ter, det -> viewModel.asignarTermo(rep, veh, ter, det) },
                                 onRecibirTermo = { asig, det -> viewModel.recibirTermo(asig, det) },
-                                onAsignarPedido = { ped, rep -> viewModel.asignarPedidoRegistrado(ped, rep) }
+                                onAsignarPedido = { ped, rep -> viewModel.asignarPedidoRegistrado(ped, rep) },
+                                onNewPedidoFuturo = { ped -> viewModel.registrarNuevoPedidoConDetalles(ped, emptyList()) }
                             )
                         }
                         NavDestination.NIVELES_INVENTARIO -> {
@@ -500,6 +508,14 @@ fun MainScreen(
         }
 
         // Modals
+        if (granelModalOpen && productoParaGranel != null) {
+            VentaGranelDialog(
+                producto = productoParaGranel!!,
+                onDismiss = { viewModel.closeGranelModal() },
+                onAddToCart = { cantidad -> viewModel.addToCart(productoParaGranel!!, cantidad) }
+            )
+        }
+
         SupervisorOverrideDialog(
             isOpen = supervisorModalOpen,
             pinInput = supervisorPinInput,

@@ -46,6 +46,12 @@ fun ProductoDTO.toEntity(
     val finalTenantId = tenantId.takeIf { !it.isNullOrEmpty() } ?: fallbackTenantId
     val finalSucursalId = sucursalId.takeIf { !it.isNullOrEmpty() } ?: fallbackSucursalId
 
+    val inferredUnidad = when {
+        unidadMedida.isNotBlank() && unidadMedida.lowercase() != "pieza" -> unidadMedida
+        nombre.lowercase().contains("tortilla") || nombre.lowercase().contains("masa") -> "kg"
+        else -> unidadMedida.ifBlank { "pieza" }
+    }
+
     return ProductoEntity(
         id = id,
         sku = sku,
@@ -55,7 +61,7 @@ fun ProductoDTO.toEntity(
         tasa_iva = tasaIva,
         tasa_ieps = tasaIeps,
         stock = stock,
-        unidad_medida = unidadMedida.ifBlank { "pieza" },
+        unidad_medida = inferredUnidad,
         alerta_minimo = alertaMinimo,
         tipo_articulo = finalTipoArticulo,
         tenant_id = finalTenantId,

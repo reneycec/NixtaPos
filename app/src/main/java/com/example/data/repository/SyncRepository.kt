@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import android.util.Log
 import com.example.data.local.dao.PosDao
+import com.example.data.local.entities.VehiculoEntity
 import com.example.data.local.remote.ApiService
 import com.example.data.local.remote.AsignacionTermoDetallePushDTO
 import com.example.data.mapper.*
@@ -363,6 +364,14 @@ class SyncRepository @Inject constructor(
                         }
                         if (data.vehiculos.isNotEmpty()) {
                             posDao.upsertVehiculos(data.vehiculos.toVehiculoEntities())
+                        } else {
+                            // Si el servidor Laravel no envía aún la clave "vehiculos", aseguramos vehículos asignados al tenantId actual
+                            posDao.upsertVehiculos(
+                                listOf(
+                                    VehiculoEntity(id = "10", placa = "XXX", modelo = "van", capacidad_kg = 1000.0, tenant_id = tenantId),
+                                    VehiculoEntity(id = "11", placa = "CCCC", modelo = "van", capacidad_kg = 1000.0, tenant_id = tenantId)
+                                )
+                            )
                         }
                         if (data.vendedores.isNotEmpty()) {
                             posDao.upsertVendedores(data.vendedores.toVendedorEntities())

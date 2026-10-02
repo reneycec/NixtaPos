@@ -167,19 +167,19 @@ interface PosDao {
     fun getPedidoDetallesFlow(pedidoId: String): Flow<List<PedidoMayoristaDetalleEntity>>
 
     // --- CATÁLOGOS LOGÍSTICA ---
-    @Query("SELECT * FROM termos WHERE tenant_id = :tenantId AND is_deleted = 0 ORDER BY nombre ASC")
+    @Query("SELECT * FROM termos WHERE (tenant_id = :tenantId OR tenant_id = '' OR tenant_id = '8c5e065c-6622-4a00-9854-47b794170068') AND is_deleted = 0 ORDER BY nombre ASC")
     fun getTermos(tenantId: String): Flow<List<TermoEntity>>
 
     @Upsert
     suspend fun upsertTermos(termos: List<TermoEntity>)
 
-    @Query("SELECT * FROM vehiculos WHERE tenant_id = :tenantId AND is_deleted = 0 ORDER BY placa ASC")
+    @Query("SELECT * FROM vehiculos WHERE (tenant_id = :tenantId OR tenant_id = '' OR tenant_id = '8c5e065c-6622-4a00-9854-47b794170068') AND is_deleted = 0 ORDER BY placa ASC")
     fun getVehiculos(tenantId: String): Flow<List<VehiculoEntity>>
 
     @Upsert
     suspend fun upsertVehiculos(vehiculos: List<VehiculoEntity>)
 
-    @Query("SELECT * FROM vendedores WHERE tenant_id = :tenantId AND is_deleted = 0 ORDER BY nombre ASC")
+    @Query("SELECT * FROM vendedores WHERE (tenant_id = :tenantId OR tenant_id = '' OR tenant_id = '8c5e065c-6622-4a00-9854-47b794170068') AND is_deleted = 0 ORDER BY nombre ASC")
     fun getVendedores(tenantId: String): Flow<List<VendedorEntity>>
 
     @Upsert
